@@ -1,0 +1,6 @@
+
+# Terraform local artifacts
+app/Infra/.terraform/
+app/Infra/terraform.tfstate
+app/Infra/terraform.tfstate.*
+app/Infra/*.tfplan
