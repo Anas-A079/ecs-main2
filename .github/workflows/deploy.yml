@@ -1,0 +1,127 @@
+name: ECS Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/ecs-assignment-main/**"
+      - "app/Infra/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-north-1
+  APP_DIR: app/ecs-assignment-main
+  TF_DIR: app/Infra
+
+jobs:
+  build_and_push:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      image_url: ${{ steps.meta.outputs.image_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr_login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag and push image
+        id: meta
+        env:
+          ECR_REPOSITORY: threatmod
+          ECR_REGISTRY: ${{ steps.ecr_login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE_SHA_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          IMAGE_LATEST_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+
+          docker build -f "${APP_DIR}/dockerfile" -t "${IMAGE_SHA_URI}" "${APP_DIR}"
+          docker tag "${IMAGE_SHA_URI}" "${IMAGE_LATEST_URI}"
+
+          docker push "${IMAGE_SHA_URI}"
+          docker push "${IMAGE_LATEST_URI}"
+
+          echo "image_url=${IMAGE_SHA_URI}" >> "$GITHUB_OUTPUT"
+
+  terraform_deploy:
+    name: Terraform Plan and Apply
+    runs-on: ubuntu-latest
+    needs: build_and_push
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform fmt check
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ secrets.TF_STATE_KEY }}" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="dynamodb_table=${{ secrets.TF_LOCK_TABLE }}"
+
+      - name: Terraform validate
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform validate
+
+      - name: Terraform plan
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          terraform plan \
+            -var="domain_name=${{ secrets.DOMAIN_NAME }}" \
+            -var="hosted_zone_name=${{ secrets.HOSTED_ZONE_NAME }}" \
+            -var="image_url=${{ needs.build_and_push.outputs.image_url }}" \
+            -out=tfplan
+
+      - name: Terraform apply
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+  post_deploy_healthcheck:
+    name: Post-Deploy Health Check
+    runs-on: ubuntu-latest
+    needs: terraform_deploy
+    steps:
+      - name: Check /health endpoint
+        run: |
+          for i in $(seq 1 20); do
+            if curl --silent --show-error --fail "https://${{ secrets.DOMAIN_NAME }}/health" >/dev/null; then
+              echo "Health check passed."
+              exit 0
+            fi
+            echo "Health check attempt $i failed, retrying..."
+            sleep 15
+          done
+          echo "Health check failed after retries."
+          exit 1
