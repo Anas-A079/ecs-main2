@@ -34,3 +34,4 @@ In the initial phase, all infrastructure was created manually using the AWS Cons
 - Application runs locally with `/health` endpoint returning:
   ```json
   {"status":"ok"}
+# ecs-main2
