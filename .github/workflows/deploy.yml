@@ -7,13 +7,25 @@ on:
     paths:
       - "app/ecs-assignment-main/**"
       - "app/Infra/**"
-      - ".github/workflows/ecs-deploy.yml"
+      - ".github/workflows/deploy.yml"
   workflow_dispatch:
     inputs:
+      action:
+        description: "Choose deploy or destroy"
+        required: true
+        type: choice
+        options:
+          - deploy
+          - destroy
+        default: deploy
       image_tag:
-        description: "Deploy image tag"
+        description: "Deploy image tag (only used for manual deploy)"
         required: false
         default: "latest"
+      confirm_destroy:
+        description: "Type DESTROY to confirm infrastructure deletion"
+        required: false
+        default: ""
 
 env:
   AWS_REGION: eu-north-1
@@ -24,6 +36,7 @@ env:
 jobs:
   build_and_push:
     name: Build and Push Image
+    if: ${{ github.event_name == 'push' || github.event.inputs.action == 'deploy' }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -34,10 +47,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
@@ -50,7 +63,7 @@ jobs:
         id: meta
         env:
           ECR_REGISTRY: ${{ steps.ecr_login.outputs.registry }}
-          IMAGE_TAG: ${{ github.event.inputs.image_tag || github.sha }}
+          IMAGE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.image_tag || github.sha }}
         run: |
           IMAGE_SHA_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
           IMAGE_LATEST_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
@@ -65,6 +78,7 @@ jobs:
 
   terraform_deploy:
     name: Terraform Plan and Apply
+    if: ${{ github.event_name == 'push' || github.event.inputs.action == 'deploy' }}
     runs-on: ubuntu-latest
     needs: build_and_push
     permissions:
@@ -73,10 +87,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
@@ -111,9 +125,9 @@ jobs:
 
   post_deploy_healthcheck:
     name: Post-Deploy Health Check
+    if: ${{ github.event_name == 'push' || github.event.inputs.action == 'deploy' }}
     runs-on: ubuntu-latest
     needs: terraform_deploy
-
     steps:
       - name: Check /health endpoint
         run: |
@@ -127,3 +141,35 @@ jobs:
           done
           echo "Health check failed after retries."
           exit 1
+
+  terraform_destroy:
+    name: Terraform Destroy
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' && github.event.inputs.confirm_destroy == 'DESTROY' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform init
+
+      - name: Terraform destroy
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          terraform destroy -auto-approve \
+            -var="domain_name=${{ secrets.DOMAIN_NAME }}" \
+            -var="hosted_zone_name=${{ secrets.HOSTED_ZONE_NAME }}"

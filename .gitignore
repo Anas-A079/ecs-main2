@@ -1,6 +1,7 @@
 
 # Terraform local artifacts
 app/Infra/.terraform/
+app/Infra/.terraform.lock.hcl
 app/Infra/terraform.tfstate
 app/Infra/terraform.tfstate.*
 app/Infra/*.tfplan
