@@ -44,4 +44,4 @@ jobs:
           terraform destroy -auto-approve \
             -var="domain_name=${{ secrets.DOMAIN_NAME }}" \
             -var="hosted_zone_name=${{ secrets.HOSTED_ZONE_NAME }}" \
-            -var="image_url=dummy"
+            -var="hosted_zone_id=${{ secrets.HOSTED_ZONE_ID }}"

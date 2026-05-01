@@ -22,6 +22,25 @@ variable "target_group_arn" {
   type = string
 }
 
+variable "create_execution_role" {
+  type        = bool
+  description = "If false, use existing IAM role (same name Terraform would create)."
+  default     = false
+}
+
+variable "create_cluster" {
+  type        = bool
+  description = "If false, attach the service to an existing cluster named \"<app_name>-cluster\"."
+  default     = true
+}
+
+locals {
+  cluster_name           = "${var.app_name}-cluster"
+  execution_role_name    = "${var.app_name}-task-execution-role"
+  execution_role_arn     = var.create_execution_role ? aws_iam_role.ecs_task_execution[0].arn : data.aws_iam_role.ecs_task_execution[0].arn
+  cluster_id_for_service = var.create_cluster ? aws_ecs_cluster.this[0].id : data.aws_ecs_cluster.existing[0].id
+}
+
 data "aws_iam_policy_document" "ecs_task_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -34,17 +53,30 @@ data "aws_iam_policy_document" "ecs_task_assume_role" {
 }
 
 resource "aws_iam_role" "ecs_task_execution" {
-  name               = "${var.app_name}-task-execution-role"
+  count              = var.create_execution_role ? 1 : 0
+  name               = local.execution_role_name
   assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
-  role       = aws_iam_role.ecs_task_execution.name
+  count      = var.create_execution_role ? 1 : 0
+  role       = aws_iam_role.ecs_task_execution[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+data "aws_iam_role" "ecs_task_execution" {
+  count = var.create_execution_role ? 0 : 1
+  name  = local.execution_role_name
+}
+
 resource "aws_ecs_cluster" "this" {
-  name = "${var.app_name}-cluster"
+  count = var.create_cluster ? 1 : 0
+  name  = local.cluster_name
+}
+
+data "aws_ecs_cluster" "existing" {
+  count        = var.create_cluster ? 0 : 1
+  cluster_name = local.cluster_name
 }
 
 resource "aws_ecs_task_definition" "this" {
@@ -53,7 +85,7 @@ resource "aws_ecs_task_definition" "this" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  execution_role_arn       = local.execution_role_arn
 
   container_definitions = jsonencode([
     {
@@ -73,7 +105,7 @@ resource "aws_ecs_task_definition" "this" {
 
 resource "aws_ecs_service" "this" {
   name            = "${var.app_name}-service"
-  cluster         = aws_ecs_cluster.this.id
+  cluster         = local.cluster_id_for_service
   task_definition = aws_ecs_task_definition.this.arn
   desired_count   = 1
   launch_type     = "FARGATE"
@@ -89,12 +121,10 @@ resource "aws_ecs_service" "this" {
     container_name   = var.app_name
     container_port   = var.container_port
   }
-
-  depends_on = [aws_iam_role_policy_attachment.ecs_task_execution_policy]
 }
 
 output "cluster_name" {
-  value = aws_ecs_cluster.this.name
+  value = local.cluster_name
 }
 
 output "service_name" {

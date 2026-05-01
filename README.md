@@ -104,7 +104,8 @@ Required GitHub secrets:
 
 - `AWS_ROLE_TO_ASSUME`
 - `DOMAIN_NAME`
-- `HOSTED_ZONE_NAME`
+- `HOSTED_ZONE_NAME` — apex domain name of the Route53 hosted zone (for example `networking-lab.uk`), **not** the `tm.` subdomain
+- `HOSTED_ZONE_ID` (optional) — if name lookup fails, set this to the zone ID (for example `Z0408373IFCSBCMQ1OZT`) and you can leave `HOSTED_ZONE_NAME` empty
 
 ## Screenshots to Include
 
