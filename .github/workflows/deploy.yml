@@ -20,7 +20,7 @@ env:
   AWS_REGION: eu-north-1
   APP_DIR: app/ecs-assignment-main
   TF_DIR: app/Infra
-  ECR_REPOSITORY: ecs-threatmod
+  ECR_REPOSITORY: ecs-threatmod-v2
 
 jobs:
   build_and_push:

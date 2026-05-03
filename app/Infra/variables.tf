@@ -1,6 +1,9 @@
 variable "app_name" {
-  default = "ecs-threatmod"
+  default = "ecs-threatmod-v2"
 }
+
+
+
 
 variable "container_port" {
   default = 80
