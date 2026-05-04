@@ -36,10 +36,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
@@ -48,11 +48,9 @@ jobs:
         id: ecr_login
         uses: aws-actions/amazon-ecr-login@v2
 
-      # ✅ FIX: export ECR_REGISTRY
       - name: Set ECR registry
         run: echo "ECR_REGISTRY=${{ steps.ecr_login.outputs.registry }}" >> $GITHUB_ENV
 
-      # ✅ Optional but very useful debug step
       - name: Debug paths
         run: |
           echo "APP_DIR=${APP_DIR}"
@@ -70,9 +68,7 @@ jobs:
           echo "Building image: $IMAGE_SHA_URI"
 
           docker build -f "${APP_DIR}/Dockerfile" -t "${IMAGE_SHA_URI}" "${APP_DIR}"
-
           docker tag "${IMAGE_SHA_URI}" "${IMAGE_LATEST_URI}"
-
           docker push "${IMAGE_SHA_URI}"
           docker push "${IMAGE_LATEST_URI}"
 
@@ -89,16 +85,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
 
       - name: Terraform fmt check
         working-directory: ${{ env.TF_DIR }}
@@ -134,15 +132,17 @@ jobs:
     steps:
       - name: Check /health endpoint
         run: |
+          echo "Checking https://${{ secrets.DOMAIN_NAME }}/health"
           for i in $(seq 1 20); do
-            if curl --silent --show-error --fail "https://${{ secrets.DOMAIN_NAME }}/health" >/dev/null; then
+            STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+              "https://${{ secrets.DOMAIN_NAME }}/health")
+            echo "Attempt $i: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
               echo "Health check passed."
               exit 0
             fi
-            echo "Health check attempt $i failed, retrying..."
             sleep 15
           done
 
-          echo "Health check failed after retries."
+          echo "Health check failed after 20 attempts (5 minutes)."
           exit 1
-
