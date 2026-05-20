@@ -1,0 +1,58 @@
+name: ECS Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_destroy:
+        description: "Type DESTROY to confirm infrastructure deletion"
+        required: true
+        default: ""
+
+env:
+  AWS_REGION: eu-north-1
+  TF_DIR: Infra
+
+jobs:
+  terraform_destroy:
+    name: Terraform Destroy
+    if: ${{ github.event.inputs.confirm_destroy == 'DESTROY' }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
+      - name: Terraform fmt check
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform init
+
+      - name: Terraform validate
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform validate
+
+      - name: Terraform destroy
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          terraform destroy -auto-approve \
+            -var="domain_name=${{ secrets.DOMAIN_NAME }}" \
+            -var="hosted_zone_name=${{ secrets.HOSTED_ZONE_NAME }}" \
+            -var="hosted_zone_id=${{ secrets.HOSTED_ZONE_ID }}"
