@@ -223,8 +223,4 @@ terraform destroy
 
 Built as a DevOps portfolio project demonstrating end-to-end AWS infrastructure, containerisation, and CI/CD automation.
 
----
 
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
