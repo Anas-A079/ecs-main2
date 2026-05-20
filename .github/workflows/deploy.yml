@@ -1,4 +1,4 @@
-name: ECS Deploy
+name: ECS App Deploy
 
 on:
   push:
@@ -6,25 +6,23 @@ on:
       - main
     paths:
       - "school-equipment/**"
-      - "Infra/**"
       - ".github/workflows/deploy.yml"
 
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Deploy image tag (only used for manual deploy)"
+        description: "Deploy image tag"
         required: false
         default: "latest"
 
 env:
   AWS_REGION: eu-north-1
   APP_DIR: school-equipment
-  TF_DIR: Infra
   ECR_REPOSITORY: school-equipment-system
 
 jobs:
   build_and_push:
-    name: Build and Push Image
+    name: Build & Push Image
     runs-on: ubuntu-latest
 
     permissions:
@@ -48,37 +46,27 @@ jobs:
         id: ecr_login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set ECR registry
-        run: echo "ECR_REGISTRY=${{ steps.ecr_login.outputs.registry }}" >> "$GITHUB_ENV"
+      - name: Set registry
+        run: echo "ECR_REGISTRY=${{ steps.ecr_login.outputs.registry }}" >> $GITHUB_ENV
 
-      - name: Debug paths
-        run: |
-          echo "APP_DIR=${APP_DIR}"
-          ls -la "${APP_DIR}"
-          echo "TF_DIR=${TF_DIR}"
-          ls -la "${TF_DIR}"
-
-      - name: Build, tag and push image
+      - name: Build and Push Image
         id: meta
         env:
           IMAGE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.image_tag || github.sha }}
         run: |
-          IMAGE_SHA_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-          IMAGE_LATEST_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+          IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          IMAGE_LATEST="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
 
-          echo "Using registry: $ECR_REGISTRY"
-          echo "Building image: $IMAGE_SHA_URI"
+          docker build -f "${APP_DIR}/Dockerfile" -t "$IMAGE_URI" "$APP_DIR"
+          docker tag "$IMAGE_URI" "$IMAGE_LATEST"
 
-          docker build -f "${APP_DIR}/Dockerfile" -t "${IMAGE_SHA_URI}" "${APP_DIR}"
-          docker tag "${IMAGE_SHA_URI}" "${IMAGE_LATEST_URI}"
+          docker push "$IMAGE_URI"
+          docker push "$IMAGE_LATEST"
 
-          docker push "${IMAGE_SHA_URI}"
-          docker push "${IMAGE_LATEST_URI}"
+          echo "image_url=$IMAGE_URI" >> "$GITHUB_OUTPUT"
 
-          echo "image_url=${IMAGE_SHA_URI}" >> "$GITHUB_OUTPUT"
-
-  terraform_deploy:
-    name: Terraform Plan and Apply
+  terraform_update:
+    name: Update ECS Service (New Image)
     runs-on: ubuntu-latest
     needs: build_and_push
 
@@ -96,89 +84,18 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Ensure ECS Task Execution Role exists
-        run: |
-          ROLE_NAME="school-equipment-system-task-execution-role"
-
-          if aws iam get-role --role-name "$ROLE_NAME" > /dev/null 2>&1; then
-            echo "Role $ROLE_NAME already exists, skipping creation."
-          else
-            echo "Creating role $ROLE_NAME..."
-
-            aws iam create-role \
-              --role-name "$ROLE_NAME" \
-              --assume-role-policy-document '{
-                "Version": "2012-10-17",
-                "Statement": [{
-                  "Effect": "Allow",
-                  "Principal": {
-                    "Service": "ecs-tasks.amazonaws.com"
-                  },
-                  "Action": "sts:AssumeRole"
-                }]
-              }'
-
-            aws iam attach-role-policy \
-              --role-name "$ROLE_NAME" \
-              --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
-
-            echo "Role $ROLE_NAME created and policy attached."
-          fi
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "~1.9"
-
-      - name: Terraform fmt check
-        working-directory: ${{ env.TF_DIR }}
-        run: terraform fmt -check -recursive
 
       - name: Terraform init
-        working-directory: ${{ env.TF_DIR }}
+        working-directory: Infra
         run: terraform init
 
-      - name: Terraform validate
-        working-directory: ${{ env.TF_DIR }}
-        run: terraform validate
-
-      - name: Terraform plan
-        working-directory: ${{ env.TF_DIR }}
+      - name: Terraform apply (update image only)
+        working-directory: Infra
         run: |
-          terraform plan \
+          terraform apply -auto-approve \
+            -var="image_url=${{ needs.build_and_push.outputs.image_url }}" \
             -var="domain_name=${{ secrets.DOMAIN_NAME }}" \
             -var="hosted_zone_name=${{ secrets.HOSTED_ZONE_NAME }}" \
-            -var="hosted_zone_id=${{ secrets.HOSTED_ZONE_ID }}" \
-            -var="image_url=${{ needs.build_and_push.outputs.image_url }}" \
-            -out=tfplan
-
-      - name: Terraform apply
-        working-directory: ${{ env.TF_DIR }}
-        run: terraform apply -auto-approve tfplan
-
-  post_deploy_healthcheck:
-    name: Post-Deploy Health Check
-    runs-on: ubuntu-latest
-    needs: terraform_deploy
-
-    steps:
-      - name: Check /health endpoint
-        run: |
-          echo "Checking https://${{ secrets.DOMAIN_NAME }}/health"
-
-          for i in $(seq 1 20); do
-            STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
-              "https://${{ secrets.DOMAIN_NAME }}/health")
-
-            echo "Attempt $i: HTTP $STATUS"
-
-            if [ "$STATUS" = "200" ]; then
-              echo "Health check passed."
-              exit 0
-            fi
-
-            sleep 15
-          done
-
-          echo "Health check failed after 20 attempts (5 minutes)."
-          exit 1
+            -var="hosted_zone_id=${{ secrets.HOSTED_ZONE_ID }}"
