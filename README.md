@@ -1,159 +1,230 @@
-# School Equipment Borrowing System
+# 🏫 School Equipment Borrowing System
 
-A simple, frontend-focused web application that allows students and teachers to request to borrow school equipment. An administrator can review, approve, or deny requests and set official return dates. All data is stored in the browser using **localStorage** — no database or backend logic required.
-
----
-
-## Features
-
-- **Borrowing request form** — submit requests with name, role, item, quantity, reason, and requested return date
-- **Admin dashboard** — view all requests in a sortable, searchable table
-- **Summary cards** — live counts of Total, Pending, Approved, and Denied requests
-- **Approve / Deny / Delete** — with confirmation dialogs and return date picker
-- **Search & filter** — search by name or item; filter by status
-- **Responsive design** — works on mobile and desktop
-- **No login required** — open access for demonstration purposes
+> A production-grade, AWS-deployed web application for managing school equipment borrowing requests — built with PHP, containerised with Docker, and orchestrated on ECS Fargate via Terraform and GitHub Actions.
 
 ---
 
-## Technology Stack
+## 📌 Overview
 
-| Layer        | Technology                      |
-|---|---|
-| Server       | PHP (page serving only)         |
-| Markup       | HTML5                           |
-| Styling      | CSS3 (custom, no frameworks)    |
-| Behaviour    | Vanilla JavaScript (ES6+)       |
-| Persistence  | Browser `localStorage`          |
+The **School Equipment Borrowing System** is a full-stack web application that streamlines how students and teachers request school equipment. An admin dashboard allows authorised users to approve or deny requests and set return dates.
+
+While the frontend uses browser `localStorage` for lightweight persistence, the surrounding infrastructure is fully production-grade — deployed on **AWS ECS Fargate** behind an **Application Load Balancer** with **HTTPS termination**, automated CI/CD, and infrastructure-as-code via **Terraform**.
 
 ---
 
-## File Structure
+## 🏗️ Architecture
 
 ```
-school-equipment/
-├── index.php              # Borrowing request form
-├── admin.php              # Admin dashboard
-├── assets/
-│   ├── css/
-│   │   └── style.css      # All styles
-│   └── js/
-│       ├── storage.js     # localStorage read/write helpers
-│       ├── app.js         # Request form logic
-│       └── admin.js       # Dashboard logic (table, modals, filters)
+User
+ └──▶ Route 53 (DNS)
+        └──▶ ALB (HTTPS via ACM)
+               └──▶ ECS Fargate (Apache + PHP container)
+                          │
+                          └──▶ Amazon ECR (Docker image registry)
+
+Infrastructure provisioned with Terraform (modular)
+CI/CD via GitHub Actions + AWS OIDC (keyless auth)
+Region: eu-north-1
+```
+
+### AWS Services Used
+
+| Service | Role |
+|---|---|
+| **ECS Fargate** | Serverless container hosting |
+| **ECR** | Private Docker image registry |
+| **ALB** | HTTPS load balancing and routing |
+| **Route 53** | DNS management |
+| **ACM** | SSL/TLS certificate provisioning |
+| **IAM (OIDC)** | Keyless GitHub Actions authentication |
+
+---
+
+## ✨ Features
+
+- 📋 **Borrowing Request Form** — Students and teachers submit equipment requests
+- 🛠️ **Admin Dashboard** — Centralised view of all requests
+- ✅ **Approve / Deny / Delete** — Full request lifecycle management
+- 📅 **Return Date Setting** — Admins assign expected return dates on approval
+- 🔍 **Search & Filter** — Filter requests by status, name, or equipment
+- 📊 **Summary Statistics** — Live counts of pending, approved, and denied requests
+- 📱 **Responsive UI** — Mobile-friendly layout
+- 💾 **localStorage Persistence** — Client-side data storage (no backend database required)
+
+---
+
+## 🧰 Tech Stack
+
+### Frontend
+- PHP 8
+- HTML5 / CSS3
+- Vanilla JavaScript
+
+### Infrastructure (IaC)
+- Terraform (modular)
+- AWS ECS Fargate, ECR, ALB, Route 53, ACM
+
+### CI/CD
+- GitHub Actions
+- AWS OIDC (no static credentials)
+- Docker
+
+---
+
+## 📁 Folder Structure
+
+```
+ECS-project-NewApp/
+├── .github/
+│   └── workflows/
+│       ├── deploy.yml          # Build, push, and deploy to ECS
+│       └── ecs-destroy.yml     # Teardown workflow
+│
+├── Infra/
+│   ├── main.tf                 # Root Terraform config
+│   ├── provider.tf             # AWS provider + backend
+│   ├── variables.tf            # Input variables
+│   ├── outputs.tf              # Stack outputs
+│   └── modules/
+│       ├── vpc/                # VPC, subnets, routing
+│       ├── ecr/                # ECR repository
+│       ├── alb/                # Load balancer + HTTPS listener
+│       ├── ecs/                # Fargate cluster, task def, service
+│       └── route53/            # DNS records
+│
+├── school-equipment/
+│   ├── Dockerfile              # Apache + PHP image
+│   ├── index.php               # Student/teacher borrowing form
+│   ├── admin.php               # Admin dashboard
+│   └── assets/
+│       ├── css/style.css       # Global styles
+│       └── js/
+│           ├── app.js          # Request submission logic
+│           ├── admin.js        # Admin dashboard logic
+│           └── storage.js      # localStorage abstraction layer
+│
 └── README.md
 ```
 
 ---
 
-## Requirements
+## 🖥️ Run Locally
 
-- **PHP 7.4 or later** (PHP 8.x recommended)
-- A web server that can serve PHP files (Apache, Nginx, or PHP's built-in server)
+### Prerequisites
+- Docker installed and running
 
-> The application has **no database**, **no Composer dependencies**, and **no build step**.
-
----
-
-## Setup & Running
-
-### Option 1 — PHP built-in server (quickest)
+### Steps
 
 ```bash
-# From the project root (school-equipment/)
-php -S localhost:8000
+# Clone the repository
+git clone https://github.com/<your-org>/ECS-project-NewApp.git
+cd ECS-project-NewApp/school-equipment
+
+# Build the Docker image
+docker build -t school-equipment .
+
+# Run the container
+docker run -p 8080:80 school-equipment
 ```
 
-Then open **http://localhost:8000** in your browser.
+Open your browser at **http://localhost:8080**
 
-### Option 2 — Apache (XAMPP / WAMP / LAMP)
+> Admin panel is accessible at **http://localhost:8080/admin.php**
 
-1. Copy the `school-equipment/` folder into your web root (e.g. `htdocs/` or `www/`).
-2. Start Apache.
-3. Open **http://localhost/school-equipment/**.
+---
 
-### Option 3 — Nginx
+## 🚀 Deployment
 
-Point the Nginx root at the `school-equipment/` directory and enable PHP-FPM processing for `.php` files. A minimal server block:
+### CI/CD Flow (GitHub Actions)
 
-```nginx
-server {
-    listen 80;
-    root /var/www/school-equipment;
-    index index.php;
-
-    location / {
-        try_files $uri $uri/ =404;
-    }
-
-    location ~ \.php$ {
-        include fastcgi_params;
-        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-    }
-}
+```
+git push → GitHub Actions triggered
+              │
+              ├── 1. Authenticate to AWS via OIDC
+              ├── 2. Build Docker image
+              ├── 3. Push image to Amazon ECR
+              ├── 4. Run Terraform plan + apply
+              ├── 5. Update ECS Fargate service
+              └── 6. HTTPS health check (smoke test)
 ```
 
----
+### Manual Infrastructure Deployment
 
-## Usage
+```bash
+cd Infra/
 
-### Submitting a Request (`index.php`)
+# Initialise Terraform
+terraform init
 
-1. Open the home page.
-2. Fill in all required fields:
-   - Full name
-   - Role (Student or Teacher)
-   - Item to borrow (from the dropdown)
-   - Quantity
-   - Reason for borrowing
-   - Requested return date
-3. Click **Submit Request**.
-4. A success message confirms the request has been saved.
+# Preview changes
+terraform plan
 
-### Managing Requests (`admin.php`)
-
-1. Open the Admin Dashboard.
-2. View all requests in the table. Summary cards at the top show counts.
-3. **Search** — type in the search box to filter by name or item.
-4. **Filter** — click All / Pending / Approved / Denied to narrow the view.
-5. **Approve** — click the Approve button, set the official return date, then confirm.
-6. **Deny** — click the Deny button to mark a request as denied.
-7. **Delete** — click Delete and confirm the dialog to permanently remove a request.
-
----
-
-## Data Model
-
-Each request stored in `localStorage` has the following shape:
-
-```json
-{
-  "id": "req_1716300000000_abc12",
-  "name": "Maria Santos",
-  "role": "Student",
-  "item": "Laptop",
-  "quantity": 1,
-  "reason": "For my thesis presentation.",
-  "requestedReturnDate": "2026-05-30",
-  "approvedReturnDate": "2026-05-28",
-  "status": "Approved",
-  "createdAt": "2026-05-20T09:00:00.000Z"
-}
+# Apply infrastructure
+terraform apply
 ```
 
-All requests are stored as a JSON array under the key **`schoolBorrowingRequests`** in `localStorage`.
+### Destroy Infrastructure
+
+```bash
+terraform destroy
+```
+
+> Alternatively, trigger the `ecs-destroy.yml` workflow from GitHub Actions.
+
+### Required GitHub Secrets
+
+| Secret | Description |
+|---|---|
+| `AWS_ACCOUNT_ID` | Target AWS account ID |
+| `AWS_REGION` | Deployment region (`eu-north-1`) |
+| `ECR_REPOSITORY` | ECR repo name |
+| `ECS_CLUSTER` | ECS cluster name |
+| `ECS_SERVICE` | ECS service name |
 
 ---
 
-## Browser Compatibility
+## 📸 Screenshots
 
-Works in all modern browsers (Chrome, Firefox, Edge, Safari). Requires JavaScript enabled and `localStorage` available.
+> _Screenshots to be added after deployment._
+
+| View | Preview |
+|---|---|
+| Borrowing Request Form | `screenshots/request-form.png` |
+| Admin Dashboard | `screenshots/admin-dashboard.png` |
+| Approve / Deny Flow | `screenshots/approval-flow.png` |
+| Mobile View | `screenshots/mobile-view.png` |
 
 ---
 
-## Notes
+## 🔒 Security Notes
 
-- Data is stored **per browser / per origin**. Clearing browser data will erase all requests.
-- There is no authentication — the admin dashboard is open to anyone with the URL.
-- To reset all data, open your browser's developer tools → Application → Local Storage → delete the `schoolBorrowingRequests` key.
+- **No static AWS credentials** — GitHub Actions authenticates via AWS OIDC (IAM Identity Provider)
+- **HTTPS enforced** — All traffic routed through ALB with ACM-managed TLS certificate
+- **No public EC2 instances** — Fargate tasks run in private subnets; only ALB is internet-facing
+- **ECR image scanning** — Enable on push via ECR configuration (recommended)
+- **localStorage limitation** — Data is stored client-side only; not suitable for multi-user production use without a backend database
+
+---
+
+## 🔭 Future Improvements
+
+- [ ] Replace `localStorage` with a backend database (e.g. Amazon RDS / DynamoDB)
+- [ ] Add user authentication (e.g. Amazon Cognito)
+- [ ] Role-based access control (student vs. teacher vs. admin)
+- [ ] Email notifications on request approval/denial (Amazon SES)
+- [ ] Audit log for admin actions
+- [ ] Terraform remote state via S3 + DynamoDB locking
+- [ ] Multi-environment support (dev / staging / prod)
+- [ ] Automated integration tests in CI pipeline
+
+---
+
+## 👤 Author
+
+Built as a DevOps portfolio project demonstrating end-to-end AWS infrastructure, containerisation, and CI/CD automation.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
