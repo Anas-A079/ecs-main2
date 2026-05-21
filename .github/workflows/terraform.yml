@@ -38,9 +38,9 @@ jobs:
         with:
           terraform_version: "~1.9"
 
-      - name: Terraform fmt
+      - name: Terraform fmt check
         working-directory: ${{ env.TF_DIR }}
-        run: terraform fmt -check -recursive
+        run: terraform fmt -check -diff -recursive
 
       - name: Terraform init
         working-directory: ${{ env.TF_DIR }}
