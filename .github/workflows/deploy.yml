@@ -1,11 +1,11 @@
-name: ECS App Deploy
+name: ECS Deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - "school-equipment/**"
+      - "Infra/**"
       - ".github/workflows/deploy.yml"
 
   workflow_dispatch:
@@ -18,11 +18,11 @@ on:
 env:
   AWS_REGION: eu-north-1
   APP_DIR: school-equipment
+  TF_DIR: Infra
   ECR_REPOSITORY: school-equipment-system
 
 jobs:
   build_and_push:
-    name: Build & Push Image
     runs-on: ubuntu-latest
 
     permissions:
@@ -33,69 +33,39 @@ jobs:
       image_url: ${{ steps.meta.outputs.image_url }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials (OIDC)
+      - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to ECR
-        id: ecr_login
+        id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Set registry
-        run: echo "ECR_REGISTRY=${{ steps.ecr_login.outputs.registry }}" >> $GITHUB_ENV
+        run: echo "ECR_REGISTRY=${{ steps.ecr.outputs.registry }}" >> $GITHUB_ENV
 
-      - name: Build and Push Image
+      - name: Verify folders
+        run: |
+          ls -la
+          ls -la school-equipment
+          ls -la Infra
+
+      - name: Build & push image
         id: meta
         env:
           IMAGE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.image_tag || github.sha }}
         run: |
-          IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-          IMAGE_LATEST="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+          IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          LATEST="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
 
-          docker build -f "${APP_DIR}/Dockerfile" -t "$IMAGE_URI" "$APP_DIR"
-          docker tag "$IMAGE_URI" "$IMAGE_LATEST"
+          docker build -f school-equipment/Dockerfile -t $IMAGE school-equipment
+          docker tag $IMAGE $LATEST
 
-          docker push "$IMAGE_URI"
-          docker push "$IMAGE_LATEST"
+          docker push $IMAGE
+          docker push $LATEST
 
-          echo "image_url=$IMAGE_URI" >> "$GITHUB_OUTPUT"
-
-  terraform_update:
-    name: Update ECS Service (New Image)
-    runs-on: ubuntu-latest
-    needs: build_and_push
-
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform init
-        working-directory: Infra
-        run: terraform init
-
-      - name: Terraform apply (update image only)
-        working-directory: Infra
-        run: |
-          terraform apply -auto-approve \
-            -var="image_url=${{ needs.build_and_push.outputs.image_url }}" \
-            -var="domain_name=${{ secrets.DOMAIN_NAME }}" \
-            -var="hosted_zone_name=${{ secrets.HOSTED_ZONE_NAME }}" \
-            -var="hosted_zone_id=${{ secrets.HOSTED_ZONE_ID }}"
+          echo "image_url=$IMAGE" >> $GITHUB_OUTPUT
