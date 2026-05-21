@@ -12,14 +12,14 @@ module "ecr" {
 }
 
 module "alb" {
-  source          = "./modules/alb"
-  app_name        = var.app_name
-  vpc_id          = module.vpc.vpc_id
-  subnet_ids      = module.vpc.public_subnet_ids
-  container_port  = var.container_port
-  certificate_arn = var.certificate_arn
-  domain_name     = var.domain_name
-  hosted_zone_id  = var.hosted_zone_id
+  source           = "./modules/alb"
+  app_name         = var.app_name
+  vpc_id           = module.vpc.vpc_id
+  subnet_ids       = module.vpc.public_subnet_ids
+  container_port   = var.container_port
+  certificate_arn  = var.certificate_arn
+  domain_name      = var.domain_name
+  hosted_zone_id   = var.hosted_zone_id
   hosted_zone_name = var.hosted_zone_name
 }
 
