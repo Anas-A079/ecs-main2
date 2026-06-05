@@ -7,7 +7,6 @@ on:
       - "school-equipment/**"
       - "Infra/**"
       - ".github/workflows/deploy.yml"
-
   workflow_dispatch:
     inputs:
       image_tag:
@@ -22,13 +21,14 @@ env:
   ECR_REPOSITORY: school-equipment-system
 
 jobs:
+  # ----------------------------------------
+  # Job 1: Build and push Docker image to ECR
+  # ----------------------------------------
   build_and_push:
     runs-on: ubuntu-latest
-
     permissions:
       id-token: write
       contents: read
-
     outputs:
       image_url: ${{ steps.meta.outputs.image_url }}
 
@@ -61,11 +61,48 @@ jobs:
         run: |
           IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
           LATEST="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
-
           docker build -f school-equipment/Dockerfile -t $IMAGE school-equipment
           docker tag $IMAGE $LATEST
-
           docker push $IMAGE
           docker push $LATEST
-
           echo "image_url=$IMAGE" >> $GITHUB_OUTPUT
+
+  # ----------------------------------------
+  # Job 2: Terraform plan & apply
+  # ----------------------------------------
+  terraform:
+    runs-on: ubuntu-latest
+    needs: build_and_push
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      TF_VAR_image_url: ${{ needs.build_and_push.outputs.image_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform apply -auto-approve tfplan
