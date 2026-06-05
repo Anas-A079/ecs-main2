@@ -1,0 +1,9 @@
+app_name         = "ecs-threatmod-v2"
+domain_name      = "app.networking-lab.uk"   # subdomain your app will be on
+hosted_zone_name = "networking-lab.uk"        # apex domain — must match Route53 hosted zone
+hosted_zone_id   = ""                         # leave blank, name lookup will be used
+certificate_arn  = ""                         # leave blank to let ACM create one
+create_vpc                = false
+create_ecr_repository     = false
+create_ecs_execution_role = false
+create_ecs_cluster        = true
