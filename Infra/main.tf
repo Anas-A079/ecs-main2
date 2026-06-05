@@ -40,10 +40,10 @@ module "route53" {
   source = "./modules/route53"
 
   # ← was hardcoded "example.com" / "app.example.com", now uses your variables
-  zone_name    = var.hosted_zone_name
+  zone_name      = var.hosted_zone_name
   hosted_zone_id = var.hosted_zone_id
-  create_zone  = false
-  domain_name  = var.domain_name
-  alb_dns_name = module.alb.alb_dns_name
-  alb_zone_id  = module.alb.alb_zone_id
+  create_zone    = false
+  domain_name    = var.domain_name
+  alb_dns_name   = module.alb.alb_dns_name
+  alb_zone_id    = module.alb.alb_zone_id
 }

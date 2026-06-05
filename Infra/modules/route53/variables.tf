@@ -6,7 +6,7 @@ variable "zone_name" {
 variable "create_zone" {
   description = "Set to true to create a new hosted zone, false to look up an existing one"
   type        = bool
-  default     = false  # most common case — zone already exists in AWS
+  default     = false # most common case — zone already exists in AWS
 }
 
 variable "domain_name" {
