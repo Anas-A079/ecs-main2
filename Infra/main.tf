@@ -34,10 +34,11 @@ module "ecs" {
 }
 
 module "route53" {
-  source           = "./modules/route53"
-  domain_name      = var.domain_name
-  hosted_zone_name = var.hosted_zone_name
-  hosted_zone_id   = var.hosted_zone_id
-  alb_dns_name     = module.alb.alb_dns_name
-  alb_zone_id      = module.alb.alb_zone_id
+  source = "./modules/route53"
+
+  zone_name    = "example.com"       # your apex domain
+  create_zone  = false               # true only if you want Terraform to create the zone
+  domain_name  = "app.example.com"   # the A record to create
+  alb_dns_name = module.alb.alb_dns_name
+  alb_zone_id  = module.alb.alb_zone_id
 }

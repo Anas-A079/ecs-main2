@@ -1,23 +1,25 @@
+variable "zone_name" {
+  description = "The Route53 hosted zone domain name (e.g. example.com)"
+  type        = string
+}
+
+variable "create_zone" {
+  description = "Set to true to create a new hosted zone, false to look up an existing one"
+  type        = bool
+  default     = false  # most common case — zone already exists in AWS
+}
+
 variable "domain_name" {
-  type = string
-}
-
-variable "hosted_zone_name" {
+  description = "The DNS record name (e.g. app.example.com)"
   type        = string
-  default     = ""
-  description = "Public hosted zone DNS name (e.g. networking-lab.uk). Leave blank if hosted_zone_id is set."
-}
-
-variable "hosted_zone_id" {
-  type        = string
-  default     = ""
-  description = "Public hosted zone ID (starts with Z). Preferred when name lookup fails."
 }
 
 variable "alb_dns_name" {
-  type = string
+  description = "DNS name of the ALB"
+  type        = string
 }
 
 variable "alb_zone_id" {
-  type = string
+  description = "Hosted zone ID of the ALB"
+  type        = string
 }
