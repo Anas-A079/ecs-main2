@@ -26,6 +26,8 @@ jobs:
   # ----------------------------------------
   build_and_push:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     permissions:
       id-token: write
       contents: read
@@ -73,11 +75,12 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
     needs: build_and_push
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      TF_VAR_image_url: ${{ needs.build_and_push.outputs.image_url }}
     permissions:
       id-token: write
       contents: read
-    env:
-      TF_VAR_image_url: ${{ needs.build_and_push.outputs.image_url }}
 
     steps:
       - uses: actions/checkout@v4
@@ -90,6 +93,12 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
+      - name: Terraform Format Check
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform fmt -check -diff -recursive
 
       - name: Terraform Init
         working-directory: ${{ env.TF_DIR }}
