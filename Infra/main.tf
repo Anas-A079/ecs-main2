@@ -24,10 +24,10 @@ module "alb" {
 }
 
 module "ecs" {
-  source            = "./modules/ecs"
-  app_name          = var.app_name
-  image_url         = var.image_url
-  container_port    = var.container_port
+  source                = "./modules/ecs"
+  app_name              = var.app_name
+  image_url             = var.image_url
+  container_port        = var.container_port
   subnet_ids            = module.vpc.public_subnet_ids
   vpc_id                = module.vpc.vpc_id
   alb_security_group_id = module.alb.alb_security_group_id
@@ -40,9 +40,9 @@ module "ecs" {
 module "route53" {
   source = "./modules/route53"
 
-  zone_name       = var.hosted_zone_name
-  hosted_zone_id  = var.hosted_zone_id
-  create_zone     = false
+  zone_name      = var.hosted_zone_name
+  hosted_zone_id = var.hosted_zone_id
+  create_zone    = false
   domain_name    = var.domain_name
   alb_dns_name   = module.alb.alb_dns_name
   alb_zone_id    = module.alb.alb_zone_id

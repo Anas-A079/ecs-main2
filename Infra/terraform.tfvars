@@ -1,9 +1,9 @@
-app_name         = "ecs-threatmod-v2"
-domain_name      = "tm.networking-lab.uk"
-hosted_zone_name = "tm.networking-lab.uk"
-hosted_zone_id   = "Z0408373IFCSBCMQ1OZT"
-certificate_arn  = ""
+app_name                  = "school-equipment-system"
+domain_name               = "tm.networking-lab.uk"
+hosted_zone_name          = "tm.networking-lab.uk"
+hosted_zone_id            = "Z0408373IFCSBCMQ1OZT"
+certificate_arn           = ""
 create_vpc                = false
-create_ecr_repository     = true
-create_ecs_execution_role = true
+create_ecr_repository     = false
+create_ecs_execution_role = false
 create_ecs_cluster        = true

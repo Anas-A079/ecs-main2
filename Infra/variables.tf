@@ -1,5 +1,5 @@
 variable "app_name" {
-  default = "ecs-threatmod-v2"
+  default = "school-equipment-system"
 }
 
 
