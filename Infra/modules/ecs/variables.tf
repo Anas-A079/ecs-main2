@@ -14,8 +14,13 @@ variable "subnet_ids" {
   type = list(string)
 }
 
-variable "security_group_id" {
+variable "vpc_id" {
   type = string
+}
+
+variable "alb_security_group_id" {
+  description = "Security group ID of the ALB; ECS tasks accept traffic only from this group"
+  type        = string
 }
 
 variable "target_group_arn" {

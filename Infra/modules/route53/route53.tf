@@ -2,7 +2,7 @@
 # Look up existing hosted zone
 # -----------------------------
 data "aws_route53_zone" "existing" {
-  count        = var.create_zone ? 0 : 1
+  count        = var.create_zone || var.hosted_zone_id != "" ? 0 : 1
   name         = var.zone_name
   private_zone = false
 }
@@ -19,7 +19,9 @@ resource "aws_route53_zone" "this" {
 # Local to resolve the zone ID
 # -----------------------------
 locals {
-  selected_zone_id = var.create_zone ? aws_route53_zone.this[0].zone_id : data.aws_route53_zone.existing[0].zone_id
+  selected_zone_id = var.create_zone ? aws_route53_zone.this[0].zone_id : (
+    var.hosted_zone_id != "" ? var.hosted_zone_id : data.aws_route53_zone.existing[0].zone_id
+  )
 }
 
 # -----------------------------

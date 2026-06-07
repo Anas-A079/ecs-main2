@@ -3,6 +3,12 @@ variable "zone_name" {
   type        = string
 }
 
+variable "hosted_zone_id" {
+  description = "Optional hosted zone ID. When set, skips name lookup."
+  type        = string
+  default     = ""
+}
+
 variable "create_zone" {
   description = "Set to true to create a new hosted zone, false to look up an existing one"
   type        = bool

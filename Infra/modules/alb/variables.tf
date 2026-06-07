@@ -15,7 +15,9 @@ variable "container_port" {
 }
 
 variable "certificate_arn" {
-  type = string
+  type        = string
+  description = "Existing ACM certificate ARN. Leave empty to create and validate a new certificate via DNS."
+  default     = ""
 }
 
 variable "domain_name" {
