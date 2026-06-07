@@ -3,6 +3,7 @@ domain_name               = "tm.networking-lab.uk"
 hosted_zone_name          = "tm.networking-lab.uk"
 hosted_zone_id            = "Z0408373IFCSBCMQ1OZT"
 certificate_arn           = ""
+container_port            = 8080
 create_vpc                = false
 create_ecr_repository     = false
 create_ecs_execution_role = false

@@ -4,7 +4,7 @@ variable "app_name" {
 
 
 variable "container_port" {
-  default = 80
+  default = 8080
 }
 
 variable "domain_name" {
