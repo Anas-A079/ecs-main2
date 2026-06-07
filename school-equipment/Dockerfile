@@ -6,7 +6,7 @@ FROM php:8.3-apache AS builder
 WORKDIR /app
 
 # Copy only required application files
-COPY index.php admin.php ./
+COPY index.php admin.php health.php ./
 COPY assets ./assets
 
 # ---------------------------------------------------------
@@ -20,6 +20,14 @@ RUN groupadd -g 1001 appgroup \
     && sed -i 's/:80/:8080/' /etc/apache2/sites-available/000-default.conf
 
 COPY --from=builder /app /var/www/html
+
+RUN printf '%s\n' \
+    '<Location /health>' \
+    '  Require all granted' \
+    '</Location>' \
+    'Alias /health /var/www/html/health.php' \
+    > /etc/apache2/conf-available/health.conf \
+    && a2enconf health
 
 RUN chown -R appuser:appgroup \
     /var/www/html \
