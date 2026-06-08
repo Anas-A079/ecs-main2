@@ -1,14 +1,18 @@
 # 🏫 School Equipment Borrowing System
 
-> A production-grade, AWS-deployed web application for managing school equipment borrowing requests — built with PHP, containerised with Docker, and orchestrated on ECS Fargate via Terraform and GitHub Actions.
+> A frontend-only web application for managing school equipment borrowing requests — containerised with Docker, deployed on AWS ECS Fargate, and provisioned with Terraform and GitHub Actions.
+
+**Live site:** [https://tm.networking-lab.uk](https://tm.networking-lab.uk)
 
 ---
 
 ## 📌 Overview
 
-The **School Equipment Borrowing System** is a full-stack web application that streamlines how students and teachers request school equipment. An admin dashboard allows authorised users to approve or deny requests and set return dates.
+The **School Equipment Borrowing System** is a **frontend application with no backend**. Students and teachers submit borrowing requests through a web form; an admin dashboard lets authorised users approve, deny, or delete requests and set return dates.
 
-While the frontend uses browser `localStorage` for lightweight persistence, the surrounding infrastructure is fully production-grade — deployed on **AWS ECS Fargate** behind an **Application Load Balancer** with **HTTPS termination**, automated CI/CD, and infrastructure-as-code via **Terraform**.
+All request data is stored in the browser using **`localStorage`** — there is no server-side database, no REST API, and no authentication layer. PHP is used only to **serve the HTML pages**; all application logic runs in **vanilla JavaScript** on the client.
+
+The AWS infrastructure (ECS, ALB, Route 53, ACM, ECR) exists to **host and deliver** this static frontend reliably over HTTPS — not to provide application backend services.
 
 ---
 
@@ -18,20 +22,33 @@ While the frontend uses browser `localStorage` for lightweight persistence, the 
 User
  └──▶ Route 53 (DNS)
         └──▶ ALB (HTTPS via ACM)
-               └──▶ ECS Fargate (Apache + PHP container)
+               └──▶ ECS Fargate (Apache + PHP — page serving only)
                           │
                           └──▶ Amazon ECR (Docker image registry)
+
+Browser (client-side)
+ └──▶ localStorage (all request data lives here)
 
 Infrastructure provisioned with Terraform (modular)
 CI/CD via GitHub Actions + AWS OIDC (keyless auth)
 Region: eu-north-1
 ```
 
+### What this project is (and is not)
+
+| | |
+|---|---|
+| ✅ **Is** | A responsive frontend UI with client-side persistence |
+| ✅ **Is** | A DevOps / IaC portfolio project (Terraform + ECS + CI/CD) |
+| ❌ **Is not** | A full-stack application |
+| ❌ **Is not** | A backend API or database-driven system |
+| ❌ **Is not** | Multi-user or cross-device — data is per browser only |
+
 ### AWS Services Used
 
 | Service | Role |
 |---|---|
-| **ECS Fargate** | Serverless container hosting |
+| **ECS Fargate** | Hosts the Apache + PHP container (serves frontend files) |
 | **ECR** | Private Docker image registry |
 | **ALB** | HTTPS load balancing and routing |
 | **Route 53** | DNS management |
@@ -49,16 +66,17 @@ Region: eu-north-1
 - 🔍 **Search & Filter** — Filter requests by status, name, or equipment
 - 📊 **Summary Statistics** — Live counts of pending, approved, and denied requests
 - 📱 **Responsive UI** — Mobile-friendly layout
-- 💾 **localStorage Persistence** — Client-side data storage (no backend database required)
+- 💾 **localStorage Persistence** — All data stored client-side in the browser
 
 ---
 
 ## 🧰 Tech Stack
 
-### Frontend
-- PHP 8
+### Frontend (application)
 - HTML5 / CSS3
-- Vanilla JavaScript
+- Vanilla JavaScript (ES6+)
+- Browser `localStorage`
+- PHP 8 *(page serving only — no backend logic)*
 
 ### Infrastructure (IaC)
 - Terraform (modular)
@@ -82,26 +100,35 @@ ECS-project-NewApp/
 │
 ├── Infra/
 │   ├── main.tf                 # Root Terraform config
-│   ├── provider.tf             # AWS provider + backend
+│   ├── provider.tf             # AWS provider
 │   ├── variables.tf            # Input variables
 │   ├── outputs.tf              # Stack outputs
+│   ├── terraform.tfvars        # Environment-specific values
 │   └── modules/
 │       ├── vpc/                # VPC, subnets, routing
 │       ├── ecr/                # ECR repository
-│       ├── alb/                # Load balancer + HTTPS listener
+│       ├── alb/                # Load balancer + HTTPS listener + ACM
 │       ├── ecs/                # Fargate cluster, task def, service
 │       └── route53/            # DNS records
 │
 ├── school-equipment/
-│   ├── Dockerfile              # Apache + PHP image
+│   ├── Dockerfile              # Apache + PHP image (port 8080)
+│   ├── health.php              # ALB health check endpoint
 │   ├── index.php               # Student/teacher borrowing form
 │   ├── admin.php               # Admin dashboard
 │   └── assets/
-│       ├── css/style.css       # Global styles
-│       └── js/
-│           ├── app.js          # Request submission logic
-│           ├── admin.js        # Admin dashboard logic
-│           └── storage.js      # localStorage abstraction layer
+│       ├── css/
+│       │   └── style.css       # Global styles
+│       ├── js/
+│       │   ├── app.js          # Request submission logic
+│       │   ├── admin.js        # Admin dashboard logic
+│       │   └── storage.js      # localStorage abstraction layer
+│       └── images/             # Screenshots and demo media
+│           ├── SchoolBorrowRequest.png
+│           ├── SchoolAdminPanel.png
+│           ├── EcsDeploy.png
+│           ├── EcsDestroy.png
+│           └── Screencast from 2026-06-08 01-39-57.webm
 │
 └── README.md
 ```
@@ -117,19 +144,19 @@ ECS-project-NewApp/
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-org>/ECS-project-NewApp.git
+git clone https://github.com/Anas-A079/ecs-main2.git
 cd ECS-project-NewApp/school-equipment
 
 # Build the Docker image
 docker build -t school-equipment .
 
-# Run the container
-docker run -p 8080:80 school-equipment
+# Run the container (app listens on 8080 inside the container)
+docker run -p 8080:8080 school-equipment
 ```
 
 Open your browser at **http://localhost:8080**
 
-> Admin panel is accessible at **http://localhost:8080/admin.php**
+> Admin panel: **http://localhost:8080/admin.php**
 
 ---
 
@@ -145,7 +172,7 @@ git push → GitHub Actions triggered
               ├── 3. Push image to Amazon ECR
               ├── 4. Run Terraform plan + apply
               ├── 5. Update ECS Fargate service
-              └── 6. HTTPS health check (smoke test)
+              └── 6. ALB health check on /health
 ```
 
 ### Manual Infrastructure Deployment
@@ -153,13 +180,8 @@ git push → GitHub Actions triggered
 ```bash
 cd Infra/
 
-# Initialise Terraform
 terraform init
-
-# Preview changes
 terraform plan
-
-# Apply infrastructure
 terraform apply
 ```
 
@@ -171,28 +193,43 @@ terraform destroy
 
 > Alternatively, trigger the `ecs-destroy.yml` workflow from GitHub Actions.
 
-### Required GitHub Secrets
+### Required GitHub Secret
 
 | Secret | Description |
 |---|---|
-| `AWS_ACCOUNT_ID` | Target AWS account ID |
-| `AWS_REGION` | Deployment region (`eu-north-1`) |
-| `ECR_REPOSITORY` | ECR repo name |
-| `ECS_CLUSTER` | ECS cluster name |
-| `ECS_SERVICE` | ECS service name |
+| `AWS_ROLE_TO_ASSUME` | IAM role ARN for OIDC authentication from GitHub Actions |
 
 ---
 
-## 📸 Screenshots
+## 📸 Screenshots & Demo
 
-> _Screenshots to be added after deployment._
+All media lives in `school-equipment/assets/images/`.
 
-| View | Preview |
-|---|---|
-| Borrowing Request Form | `screenshots/request-form.png` |
-| Admin Dashboard | `screenshots/admin-dashboard.png` |
-| Approve / Deny Flow | `screenshots/approval-flow.png` |
-| Mobile View | `screenshots/mobile-view.png` |
+### Application UI
+
+**Borrowing Request Form** (`SchoolBorrowRequest.png`)
+
+![Borrowing request form](school-equipment/assets/images/SchoolBorrowRequest.png)
+
+**Admin Dashboard** (`SchoolAdminPanel.png`)
+
+![Admin dashboard](school-equipment/assets/images/SchoolAdminPanel.png)
+
+### CI/CD Workflows
+
+**ECS Deploy workflow** (`EcsDeploy.png`)
+
+![GitHub Actions ECS Deploy workflow](school-equipment/assets/images/EcsDeploy.png)
+
+**ECS Destroy workflow** (`EcsDestroy.png`)
+
+![GitHub Actions ECS Destroy workflow](school-equipment/assets/images/EcsDestroy.png)
+
+### Demo walkthrough
+
+A screen recording of the application in use is included:
+
+🎬 [Screencast from 2026-06-08 01-39-57.webm](school-equipment/assets/images/Screencast%20from%202026-06-08%2001-39-57.webm)
 
 ---
 
@@ -200,27 +237,23 @@ terraform destroy
 
 - **No static AWS credentials** — GitHub Actions authenticates via AWS OIDC (IAM Identity Provider)
 - **HTTPS enforced** — All traffic routed through ALB with ACM-managed TLS certificate
-- **No public EC2 instances** — Fargate tasks run in private subnets; only ALB is internet-facing
-- **ECR image scanning** — Enable on push via ECR configuration (recommended)
-- **localStorage limitation** — Data is stored client-side only; not suitable for multi-user production use without a backend database
+- **No backend attack surface** — No database, API, or server-side session handling
+- **localStorage limitation** — Data is stored client-side only; clearing browser data erases all requests; not suitable for real multi-user production use without a backend
 
 ---
 
 ## 🔭 Future Improvements
 
-- [ ] Replace `localStorage` with a backend database (e.g. Amazon RDS / DynamoDB)
+- [ ] Add a real backend and database (e.g. Amazon RDS / DynamoDB + REST API)
 - [ ] Add user authentication (e.g. Amazon Cognito)
 - [ ] Role-based access control (student vs. teacher vs. admin)
 - [ ] Email notifications on request approval/denial (Amazon SES)
 - [ ] Audit log for admin actions
 - [ ] Terraform remote state via S3 + DynamoDB locking
 - [ ] Multi-environment support (dev / staging / prod)
-- [ ] Automated integration tests in CI pipeline
 
 ---
 
 ## 👤 Author
 
-Built as a DevOps portfolio project demonstrating end-to-end AWS infrastructure, containerisation, and CI/CD automation.
-
-
+Built as a DevOps portfolio project demonstrating AWS infrastructure, containerisation, and CI/CD — hosting a lightweight frontend-only application on ECS Fargate.

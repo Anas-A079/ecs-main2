@@ -1,6 +1,8 @@
 # School Equipment Borrowing System
 
-A simple, frontend-focused web application that allows students and teachers to request to borrow school equipment. An administrator can review, approve, or deny requests and set official return dates. All data is stored in the browser using **localStorage** — no database or backend logic required.
+A **frontend-only** web application that allows students and teachers to request school equipment. An administrator can review, approve, or deny requests and set official return dates.
+
+There is **no backend** — no database, no API, and no server-side business logic. All data is stored in the browser using **`localStorage`**. PHP files exist only to serve the HTML pages; all behaviour is handled by **vanilla JavaScript** on the client.
 
 ---
 
@@ -18,13 +20,15 @@ A simple, frontend-focused web application that allows students and teachers to 
 
 ## Technology Stack
 
-| Layer        | Technology                      |
+| Layer        | Technology                                      |
 |---|---|
-| Server       | PHP (page serving only)         |
-| Markup       | HTML5                           |
-| Styling      | CSS3 (custom, no frameworks)    |
-| Behaviour    | Vanilla JavaScript (ES6+)       |
-| Persistence  | Browser `localStorage`          |
+| Markup       | HTML5 (via PHP page shells)                     |
+| Styling      | CSS3 (custom, no frameworks)                    |
+| Behaviour    | Vanilla JavaScript (ES6+)                       |
+| Persistence  | Browser `localStorage` *(client-side only)*     |
+| Server       | PHP 8 / Apache *(serves static pages — no API)*  |
+
+> This is **not** a full-stack application. PHP does not process form submissions or store data on the server.
 
 ---
 
@@ -34,65 +38,75 @@ A simple, frontend-focused web application that allows students and teachers to 
 school-equipment/
 ├── index.php              # Borrowing request form
 ├── admin.php              # Admin dashboard
+├── health.php             # Health check endpoint (for ALB)
+├── Dockerfile             # Container image (Apache on port 8080)
 ├── assets/
 │   ├── css/
 │   │   └── style.css      # All styles
-│   └── js/
-│       ├── storage.js     # localStorage read/write helpers
-│       ├── app.js         # Request form logic
-│       └── admin.js       # Dashboard logic (table, modals, filters)
+│   ├── js/
+│   │   ├── storage.js     # localStorage read/write helpers
+│   │   ├── app.js         # Request form logic
+│   │   └── admin.js       # Dashboard logic (table, modals, filters)
+│   └── images/            # Screenshots and demo media
+│       ├── SchoolBorrowRequest.png
+│       ├── SchoolAdminPanel.png
+│       ├── EcsDeploy.png
+│       ├── EcsDestroy.png
+│       └── Screencast from 2026-06-08 01-39-57.webm
 └── README.md
 ```
 
 ---
 
+## Screenshots
+
+### Borrowing Request Form
+
+![Borrowing request form](assets/images/SchoolBorrowRequest.png)
+
+### Admin Dashboard
+
+![Admin dashboard](assets/images/SchoolAdminPanel.png)
+
+### Demo walkthrough
+
+🎬 [Application screencast](assets/images/Screencast%20from%202026-06-08%2001-39-57.webm)
+
+---
+
 ## Requirements
 
-- **PHP 7.4 or later** (PHP 8.x recommended)
+- **PHP 7.4 or later** (PHP 8.x recommended) — for local development only
 - A web server that can serve PHP files (Apache, Nginx, or PHP's built-in server)
 
-> The application has **no database**, **no Composer dependencies**, and **no build step**.
+> No database, no Composer dependencies, and no build step.
 
 ---
 
 ## Setup & Running
 
-### Option 1 — PHP built-in server (quickest)
+### Option 1 — Docker (matches production)
 
 ```bash
-# From the project root (school-equipment/)
+docker build -t school-equipment .
+docker run -p 8080:8080 school-equipment
+```
+
+Open **http://localhost:8080**
+
+### Option 2 — PHP built-in server (quickest)
+
+```bash
 php -S localhost:8000
 ```
 
-Then open **http://localhost:8000** in your browser.
+Open **http://localhost:8000**
 
-### Option 2 — Apache (XAMPP / WAMP / LAMP)
+### Option 3 — Apache (XAMPP / WAMP / LAMP)
 
 1. Copy the `school-equipment/` folder into your web root (e.g. `htdocs/` or `www/`).
 2. Start Apache.
 3. Open **http://localhost/school-equipment/**.
-
-### Option 3 — Nginx
-
-Point the Nginx root at the `school-equipment/` directory and enable PHP-FPM processing for `.php` files. A minimal server block:
-
-```nginx
-server {
-    listen 80;
-    root /var/www/school-equipment;
-    index index.php;
-
-    location / {
-        try_files $uri $uri/ =404;
-    }
-
-    location ~ \.php$ {
-        include fastcgi_params;
-        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-    }
-}
-```
 
 ---
 
@@ -101,25 +115,15 @@ server {
 ### Submitting a Request (`index.php`)
 
 1. Open the home page.
-2. Fill in all required fields:
-   - Full name
-   - Role (Student or Teacher)
-   - Item to borrow (from the dropdown)
-   - Quantity
-   - Reason for borrowing
-   - Requested return date
-3. Click **Submit Request**.
-4. A success message confirms the request has been saved.
+2. Fill in all required fields (name, role, item, quantity, reason, return date).
+3. Click **Submit Request** — data is saved to `localStorage` in your browser.
 
 ### Managing Requests (`admin.php`)
 
 1. Open the Admin Dashboard.
-2. View all requests in the table. Summary cards at the top show counts.
-3. **Search** — type in the search box to filter by name or item.
-4. **Filter** — click All / Pending / Approved / Denied to narrow the view.
-5. **Approve** — click the Approve button, set the official return date, then confirm.
-6. **Deny** — click the Deny button to mark a request as denied.
-7. **Delete** — click Delete and confirm the dialog to permanently remove a request.
+2. View, search, and filter requests.
+3. **Approve** — set the official return date and confirm.
+4. **Deny** or **Delete** — update or remove requests.
 
 ---
 
@@ -154,6 +158,6 @@ Works in all modern browsers (Chrome, Firefox, Edge, Safari). Requires JavaScrip
 
 ## Notes
 
-- Data is stored **per browser / per origin**. Clearing browser data will erase all requests.
+- Data is stored **per browser / per device**. Clearing browser data erases all requests.
 - There is no authentication — the admin dashboard is open to anyone with the URL.
-- To reset all data, open your browser's developer tools → Application → Local Storage → delete the `schoolBorrowingRequests` key.
+- To reset all data: Developer Tools → Application → Local Storage → delete `schoolBorrowingRequests`.
