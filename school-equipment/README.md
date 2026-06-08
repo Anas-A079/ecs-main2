@@ -50,6 +50,7 @@ school-equipment/
 │   └── images/            # Screenshots and demo media
 │       ├── SchoolBorrowRequest.png
 │       ├── SchoolAdminPanel.png
+│       ├── healthCheck.png
 │       ├── EcsDeploy.png
 │       ├── EcsDestroy.png
 │       └── Screencast from 2026-06-08 01-39-57.webm
@@ -67,6 +68,10 @@ school-equipment/
 ### Admin Dashboard
 
 ![Admin dashboard](assets/images/SchoolAdminPanel.png)
+
+### ALB health check
+
+![ALB target group health check](assets/images/healthCheck.png)
 
 ### Demo walkthrough
 
