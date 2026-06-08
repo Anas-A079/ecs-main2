@@ -238,7 +238,7 @@ All media lives in `school-equipment/assets/images/`.
 
 **Healthy targets** (`HealthCheck.png`)
 
-![ALB target group health check](school-equipment/assets/images/healthCheck.png)
+![ALB target group health check](school-equipment/assets/images/HealthCheck.png)
 
 ### CI/CD Workflows
 
