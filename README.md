@@ -1,6 +1,6 @@
 # 🏫 School Equipment Borrowing System
 
-> A frontend-only web application for managing school equipment borrowing requests. Containerised with Docker, deployed on AWS ECS Fargate, and provisioned with Terraform and GitHub Actions.
+> A frontend-only web application for managing school equipment borrowing requests — containerised with Docker, deployed on AWS ECS Fargate, and provisioned with Terraform and GitHub Actions.
 
 **Live site:** [https://tm.networking-lab.uk](https://tm.networking-lab.uk)
 
@@ -8,11 +8,11 @@
 
 ## 📌 Overview
 
-The **School Equipment Borrowing System** is a **frontend application with no backend**. Students and teachers submit borrowing requests through a web form. An admin dashboard lets authorised users approve, deny, or delete requests and set return dates.
+The **School Equipment Borrowing System** is a **frontend application with no backend**. Students and teachers submit borrowing requests through a web form; an admin dashboard lets authorised users approve, deny, or delete requests and set return dates.
 
-All request data is stored in the browser using **`localStorage`**. There is no server-side database, no REST API, and no authentication layer. PHP is used only to **serve the HTML pages**. All application logic runs in **vanilla JavaScript** on the client.
+All request data is stored in the browser using **`localStorage`** — there is no server-side database, no REST API, and no authentication layer. PHP is used only to **serve the HTML pages**; all application logic runs in **vanilla JavaScript** on the client.
 
-The AWS infrastructure (ECS, ALB, Route 53, ACM, ECR) hosts and delivers this static frontend over HTTPS. It does not provide backend services for the app itself.
+The AWS infrastructure (ECS, ALB, Route 53, ACM, ECR) exists to **host and deliver** this static frontend reliably over HTTPS — not to provide application backend services.
 
 ---
 
@@ -22,7 +22,7 @@ The AWS infrastructure (ECS, ALB, Route 53, ACM, ECR) hosts and delivers this st
 User
  └──▶ Route 53 (DNS)
         └──▶ ALB (HTTPS via ACM)
-               └──▶ ECS Fargate (Apache + PHP, page serving only)
+               └──▶ ECS Fargate (Apache + PHP — page serving only)
                           │
                           └──▶ Amazon ECR (Docker image registry)
 
@@ -33,16 +33,6 @@ Infrastructure provisioned with Terraform (modular)
 CI/CD via GitHub Actions + AWS OIDC (keyless auth)
 Region: eu-north-1
 ```
-
-### What this project is (and is not)
-
-| | |
-|---|---|
-| ✅ **Is** | A responsive frontend UI with client-side persistence |
-| ✅ **Is** | A DevOps / IaC portfolio project (Terraform + ECS + CI/CD) |
-| ❌ **Is not** | A full-stack application |
-| ❌ **Is not** | A backend API or database-driven system |
-| ❌ **Is not** | Multi-user or cross-device (data is per browser only) |
 
 ### AWS Services Used
 
@@ -59,14 +49,14 @@ Region: eu-north-1
 
 ## ✨ Features
 
-- 📋 **Borrowing Request Form**: Students and teachers submit equipment requests
-- 🛠️ **Admin Dashboard**: Centralised view of all requests
-- ✅ **Approve / Deny / Delete**: Full request lifecycle management
-- 📅 **Return Date Setting**: Admins assign expected return dates on approval
-- 🔍 **Search & Filter**: Filter requests by status, name, or equipment
-- 📊 **Summary Statistics**: Live counts of pending, approved, and denied requests
-- 📱 **Responsive UI**: Mobile-friendly layout
-- 💾 **localStorage Persistence**: All data stored client-side in the browser
+- 📋 **Borrowing Request Form** — Students and teachers submit equipment requests
+- 🛠️ **Admin Dashboard** — Centralised view of all requests
+- ✅ **Approve / Deny / Delete** — Full request lifecycle management
+- 📅 **Return Date Setting** — Admins assign expected return dates on approval
+- 🔍 **Search & Filter** — Filter requests by status, name, or equipment
+- 📊 **Summary Statistics** — Live counts of pending, approved, and denied requests
+- 📱 **Responsive UI** — Mobile-friendly layout
+- 💾 **localStorage Persistence** — All data stored client-side in the browser
 
 ---
 
@@ -76,7 +66,7 @@ Region: eu-north-1
 - HTML5 / CSS3
 - Vanilla JavaScript (ES6+)
 - Browser `localStorage`
-- PHP 8 (page serving only, no backend logic)
+- PHP 8 *(page serving only — no backend logic)*
 
 ### Infrastructure (IaC)
 - Terraform (modular)
@@ -235,10 +225,10 @@ A screen recording of the application in use is included:
 
 ## 🔒 Security Notes
 
-- **No static AWS credentials**: GitHub Actions authenticates via AWS OIDC (IAM Identity Provider)
-- **HTTPS enforced**: All traffic routed through ALB with ACM-managed TLS certificate
-- **No backend attack surface**: No database, API, or server-side session handling
-- **localStorage limitation**: Data is stored client-side only. Clearing browser data erases all requests. Not suitable for real multi-user production use without a backend.
+- **No static AWS credentials** — GitHub Actions authenticates via AWS OIDC (IAM Identity Provider)
+- **HTTPS enforced** — All traffic routed through ALB with ACM-managed TLS certificate
+- **No backend attack surface** — No database, API, or server-side session handling
+- **localStorage limitation** — Data is stored client-side only; clearing browser data erases all requests; not suitable for real multi-user production use without a backend
 
 ---
 
@@ -256,4 +246,4 @@ A screen recording of the application in use is included:
 
 ## 👤 Author
 
-Built as a DevOps portfolio project demonstrating AWS infrastructure, containerisation, and CI/CD. The app itself is a lightweight frontend-only site running on ECS Fargate.
+Built as a DevOps portfolio project demonstrating AWS infrastructure, containerisation, and CI/CD — hosting a lightweight frontend-only application on ECS Fargate.

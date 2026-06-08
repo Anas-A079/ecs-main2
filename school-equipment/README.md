@@ -2,7 +2,7 @@
 
 A **frontend-only** web application that allows students and teachers to request school equipment. An administrator can review, approve, or deny requests and set official return dates.
 
-There is **no backend**: no database, no API, and no server-side business logic. All data is stored in the browser using **`localStorage`**. PHP files exist only to serve the HTML pages. All behaviour is handled by **vanilla JavaScript** on the client.
+There is **no backend**: no database, no API, and no server-side business logic. All data is stored in the browser using **`localStorage`**. PHP files exist only to serve the HTML pages; all behaviour is handled by **vanilla JavaScript** on the client.
 
 ---
 
@@ -25,8 +25,8 @@ There is **no backend**: no database, no API, and no server-side business logic.
 | Markup       | HTML5 (via PHP page shells)                     |
 | Styling      | CSS3 (custom, no frameworks)                    |
 | Behaviour    | Vanilla JavaScript (ES6+)                       |
-| Persistence  | Browser `localStorage` (client-side only)       |
-| Server       | PHP 8 / Apache (serves static pages, no API)    |
+| Persistence  | Browser `localStorage` *(client-side only)*     |
+| Server       | PHP 8 / Apache *(serves static pages, no API)*  |
 
 > This is **not** a full-stack application. PHP does not process form submissions or store data on the server.
 
