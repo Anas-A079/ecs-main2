@@ -236,7 +236,7 @@ All media lives in `school-equipment/assets/images/`.
 
 ### ALB health check
 
-**Healthy targets** (`healthCheck.png`)
+**Healthy targets** (`HealthCheck.png`)
 
 ![ALB target group health check](school-equipment/assets/images/healthCheck.png)
 
