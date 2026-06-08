@@ -78,6 +78,8 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       TF_VAR_image_url: ${{ needs.build_and_push.outputs.image_url }}
+      TF_VAR_domain_name: ${{ secrets.DOMAIN_NAME }}
+      TF_VAR_hosted_zone_name: ${{ secrets.HOSTED_ZONE_NAME }}
     permissions:
       id-token: write
       contents: read

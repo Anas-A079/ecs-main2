@@ -181,13 +181,41 @@ terraform apply
 terraform destroy
 ```
 
-> Alternatively, trigger the `ecs-destroy.yml` workflow from GitHub Actions.
+> Alternatively, trigger the `ecs-destroy.yml` workflow from GitHub Actions. Type `DESTROY` to confirm.
 
-### Required GitHub Secret
+### GitHub Actions OIDC
 
-| Secret | Description |
-|---|---|
-| `AWS_ROLE_TO_ASSUME` | IAM role ARN for OIDC authentication from GitHub Actions |
+Workflows authenticate to AWS using **OIDC** (OpenID Connect). No long-lived access keys are stored in GitHub. Each job requests a short-lived token, then assumes an IAM role in your AWS account.
+
+```
+GitHub Actions job
+      │
+      ▼
+  OIDC token issued (id-token: write permission)
+      │
+      ▼
+  sts:AssumeRoleWithWebIdentity
+      │
+      ▼
+  IAM role (AWS_ROLE_TO_ASSUME)
+      │
+      ▼
+  ECR push / Terraform apply or destroy
+```
+
+On the AWS side you need an IAM OIDC identity provider for `token.actions.githubusercontent.com` and a role trust policy scoped to this repo (`Anas-A079/ecs-main2`).
+
+### Repository secrets
+
+Configure these under **Settings → Secrets and variables → Actions → Secrets**:
+
+| Secret | Used by | Description |
+|---|---|---|
+| `AWS_ROLE_TO_ASSUME` | deploy, destroy | Full ARN of the IAM role GitHub assumes via OIDC (e.g. `arn:aws:iam::123456789012:role/github-actions-ecs-main2`) |
+| `DOMAIN_NAME` | deploy, destroy | Application URL hostname passed to Terraform (e.g. `tm.networking-lab.uk`) |
+| `HOSTED_ZONE_NAME` | deploy, destroy | Route53 hosted zone name (e.g. `tm.networking-lab.uk`) |
+
+`hosted_zone_id` and other infra settings live in `Infra/terraform.tfvars` in the repo. The deploy workflow also passes the built Docker image URL via `TF_VAR_image_url`.
 
 ---
 
@@ -225,10 +253,10 @@ A screen recording of the application in use is included:
 
 ## 🔒 Security Notes
 
-- **No static AWS credentials** — GitHub Actions authenticates via AWS OIDC (IAM Identity Provider)
-- **HTTPS enforced** — All traffic routed through ALB with ACM-managed TLS certificate
-- **No backend attack surface** — No database, API, or server-side session handling
-- **localStorage limitation** — Data is stored client-side only; clearing browser data erases all requests; not suitable for real multi-user production use without a backend
+- **No static AWS credentials**: GitHub Actions authenticates via AWS OIDC (IAM Identity Provider)
+- **HTTPS enforced**: all traffic goes through the ALB with an ACM-managed TLS certificate
+- **No backend attack surface**: no database, API, or server-side session handling
+- **localStorage limitation**: data is stored client-side only. Clearing browser data erases all requests. Not suitable for real multi-user production use without a backend.
 
 ---
 
