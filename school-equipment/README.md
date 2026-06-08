@@ -2,19 +2,19 @@
 
 A **frontend-only** web application that allows students and teachers to request school equipment. An administrator can review, approve, or deny requests and set official return dates.
 
-There is **no backend** — no database, no API, and no server-side business logic. All data is stored in the browser using **`localStorage`**. PHP files exist only to serve the HTML pages; all behaviour is handled by **vanilla JavaScript** on the client.
+There is **no backend**: no database, no API, and no server-side business logic. All data is stored in the browser using **`localStorage`**. PHP files exist only to serve the HTML pages. All behaviour is handled by **vanilla JavaScript** on the client.
 
 ---
 
 ## Features
 
-- **Borrowing request form** — submit requests with name, role, item, quantity, reason, and requested return date
-- **Admin dashboard** — view all requests in a sortable, searchable table
-- **Summary cards** — live counts of Total, Pending, Approved, and Denied requests
-- **Approve / Deny / Delete** — with confirmation dialogs and return date picker
-- **Search & filter** — search by name or item; filter by status
-- **Responsive design** — works on mobile and desktop
-- **No login required** — open access for demonstration purposes
+- **Borrowing request form**: submit requests with name, role, item, quantity, reason, and requested return date
+- **Admin dashboard**: view all requests in a sortable, searchable table
+- **Summary cards**: live counts of Total, Pending, Approved, and Denied requests
+- **Approve / Deny / Delete**: with confirmation dialogs and return date picker
+- **Search & filter**: search by name or item; filter by status
+- **Responsive design**: works on mobile and desktop
+- **No login required**: open access for demonstration purposes
 
 ---
 
@@ -25,8 +25,8 @@ There is **no backend** — no database, no API, and no server-side business log
 | Markup       | HTML5 (via PHP page shells)                     |
 | Styling      | CSS3 (custom, no frameworks)                    |
 | Behaviour    | Vanilla JavaScript (ES6+)                       |
-| Persistence  | Browser `localStorage` *(client-side only)*     |
-| Server       | PHP 8 / Apache *(serves static pages — no API)*  |
+| Persistence  | Browser `localStorage` (client-side only)       |
+| Server       | PHP 8 / Apache (serves static pages, no API)    |
 
 > This is **not** a full-stack application. PHP does not process form submissions or store data on the server.
 
@@ -76,7 +76,7 @@ school-equipment/
 
 ## Requirements
 
-- **PHP 7.4 or later** (PHP 8.x recommended) — for local development only
+- **PHP 7.4 or later** (PHP 8.x recommended), for local development only
 - A web server that can serve PHP files (Apache, Nginx, or PHP's built-in server)
 
 > No database, no Composer dependencies, and no build step.
@@ -85,7 +85,7 @@ school-equipment/
 
 ## Setup & Running
 
-### Option 1 — Docker (matches production)
+### Option 1: Docker (matches production)
 
 ```bash
 docker build -t school-equipment .
@@ -94,7 +94,7 @@ docker run -p 8080:8080 school-equipment
 
 Open **http://localhost:8080**
 
-### Option 2 — PHP built-in server (quickest)
+### Option 2: PHP built-in server (quickest)
 
 ```bash
 php -S localhost:8000
@@ -102,7 +102,7 @@ php -S localhost:8000
 
 Open **http://localhost:8000**
 
-### Option 3 — Apache (XAMPP / WAMP / LAMP)
+### Option 3: Apache (XAMPP / WAMP / LAMP)
 
 1. Copy the `school-equipment/` folder into your web root (e.g. `htdocs/` or `www/`).
 2. Start Apache.
@@ -116,14 +116,14 @@ Open **http://localhost:8000**
 
 1. Open the home page.
 2. Fill in all required fields (name, role, item, quantity, reason, return date).
-3. Click **Submit Request** — data is saved to `localStorage` in your browser.
+3. Click **Submit Request**. Data is saved to `localStorage` in your browser.
 
 ### Managing Requests (`admin.php`)
 
 1. Open the Admin Dashboard.
 2. View, search, and filter requests.
-3. **Approve** — set the official return date and confirm.
-4. **Deny** or **Delete** — update or remove requests.
+3. **Approve**: set the official return date and confirm.
+4. **Deny** or **Delete**: update or remove requests.
 
 ---
 
@@ -159,5 +159,5 @@ Works in all modern browsers (Chrome, Firefox, Edge, Safari). Requires JavaScrip
 ## Notes
 
 - Data is stored **per browser / per device**. Clearing browser data erases all requests.
-- There is no authentication — the admin dashboard is open to anyone with the URL.
+- There is no authentication. The admin dashboard is open to anyone with the URL.
 - To reset all data: Developer Tools → Application → Local Storage → delete `schoolBorrowingRequests`.
