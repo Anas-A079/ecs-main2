@@ -18,21 +18,12 @@ The AWS infrastructure (ECS, ALB, Route 53, ACM, ECR) is there to **host and del
 
 ## 🏗️ Architecture
 
-```
-User
- └──▶ Route 53 (DNS)
-        └──▶ ALB (HTTPS via ACM)
-               └──▶ ECS Fargate (Apache + PHP, page serving only)
-                          │
-                          └──▶ Amazon ECR (Docker image registry)
 
-Browser (client-side)
- └──▶ localStorage (all request data lives here)
+**Architecture Diagram** (`ArchitectureDiagram.png`)
 
-Infrastructure provisioned with Terraform (modular)
-CI/CD via GitHub Actions + AWS OIDC (keyless auth)
-Region: eu-north-1
-```
+![Admin dashboard](school-equipment/assets/images/ArchitectureDiagram.png)
+
+
 
 ### AWS Services Used
 
@@ -233,6 +224,7 @@ All media lives in `school-equipment/assets/images/`.
 **Admin Dashboard** (`SchoolAdminPanel.png`)
 
 ![Admin dashboard](school-equipment/assets/images/SchoolAdminPanel.png)
+
 
 ### ALB health check
 
