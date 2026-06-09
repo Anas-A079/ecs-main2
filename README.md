@@ -55,7 +55,7 @@ The AWS infrastructure (ECS, ALB, Route 53, ACM, ECR) is there to **host and del
 
 ### Frontend (application)
 - HTML5 / CSS3
-- Vanilla JavaScript (ES6+)
+- Vanilla JavaScript 
 - Browser `localStorage`
 - PHP 8 *(page serving only, no backend logic)*
 
